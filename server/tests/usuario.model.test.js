@@ -5,6 +5,7 @@ import { Usuario } from "../models/usuario.model.js";
 describe("Usuario Model", () => {
   beforeAll(async () => {
     await connect();
+    await Usuario.syncIndexes();
   });
 
   afterEach(async () => {
