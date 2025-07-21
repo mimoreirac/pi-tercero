@@ -2,7 +2,7 @@
   "name": "pi-tercero",
   "version": "1.0.0",
   "description": "Proyecto Integrador para las asignaturas de Desarrollo Web, Bases de Datos 2, y Proyectos de Software",
-  "main": "index.js",
+  "main": "./server/server.js",
   "scripts": {
     "dev": "nodemon ./server/server.js",
     "test": "vitest"
@@ -22,13 +22,13 @@
   "dependencies": {
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "mongoose": "^8.16.4",
     "pg": "^8.16.3"
   },
   "devDependencies": {
-    "@testcontainers/postgresql": "^11.3.1",
+    "mongodb-memory-server": "^10.1.4",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.3",
-    "testcontainers": "^11.3.1",
     "vitest": "^3.2.4"
   }
 }
