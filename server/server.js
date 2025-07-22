@@ -1,12 +1,12 @@
 import express from "express";
 import pool from "./db.js";
+import usuarioRoutes from "./routes/usuarioRoutes.js";
 
 const port = process.env.PORT;
 const app = express();
 
 app.use(express.json());
 
-pool
-  .connect()
-  .then(() => console.log("Conectado a la base de datos de PostgreSQL"))
-  .catch((err) => console.error("Error de conexión a la base de datos: ", err));
+app.use(usuarioRoutes);
+
+export default app;
