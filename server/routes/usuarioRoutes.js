@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
   getOrCreateUser,
-  getUserById,
+  getMe,
   updateUser,
   deleteUser,
 } from "../controllers/usuarioController.js";
@@ -10,8 +10,8 @@ import { protect } from "../middleware/auth.js";
 const router = Router();
 
 router.post("/sync", protect, getOrCreateUser);
-router.get("/:id", getUserById);
-router.put("/:id", protect, updateUser);
-router.delete("/:id", protect, deleteUser);
+router.get("/me", protect, getMe);
+router.put("/me", protect, updateUser);
+router.delete("/me", protect, deleteUser);
 
 export default router;
