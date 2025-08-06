@@ -25,6 +25,11 @@ class Reserva {
     return result.rows;
   }
 
+  static async findAll() {
+    const result = await pool.query("SELECT * FROM reservas");
+    return result.rows;
+  }
+
   static async delete(id) {
     const result = await pool.query(
       "DELETE FROM reservas WHERE id_reserva = $1 RETURNING *",
