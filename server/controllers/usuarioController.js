@@ -30,11 +30,12 @@ export const getOrCreateUser = async (req, res) => {
   }
 };
 
-export const getUserById = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
-    const user = await Usuario.findById(req.params.id);
+    const user = await Usuario.findByFirebaseUid(req.user.uid);
     if (!user) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
+      // Si el sync funciona correctamente, este caso nunca deberia pasar
+      return res.status(404).json({ error: "Usuario no encontrado en la base de datos local" });
     }
     res.status(200).json(user);
   } catch (error) {
@@ -44,7 +45,8 @@ export const getUserById = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   try {
-    const updatedUser = await Usuario.update(req.params.id, req.body);
+    // Utilizamos req.user.uid para que los usuarios solo puedan actualizar su propia cuenta
+    const updatedUser = await Usuario.update(req.user.uid, req.body);
     if (!updatedUser) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
@@ -57,7 +59,8 @@ export const updateUser = async (req, res) => {
 
 export const deleteUser = async (req, res) => {
   try {
-    const deletedUser = await Usuario.delete(req.params.id);
+    // Similarmente req.user.uid para que los usuarios solo puedan eliminar su propia cuenta
+    const deletedUser = await Usuario.delete(req.user.uid);
     if (!deletedUser) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }

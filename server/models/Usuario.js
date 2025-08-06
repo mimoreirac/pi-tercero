@@ -35,18 +35,18 @@ class Usuario {
     return result.rows[0];
   }
 
-  static async update(id, { nombre, numero_telefono }) {
+  static async update(firebaseUid, { nombre, numero_telefono }) {
     const result = await pool.query(
-      "UPDATE usuarios SET nombre = $1, numero_telefono = $2, updated_at = NOW() WHERE id_usuario = $3 RETURNING *",
-      [nombre, numero_telefono, id]
+      "UPDATE usuarios SET nombre = $1, numero_telefono = $2, updated_at = NOW() WHERE firebase_uid = $3 RETURNING *",
+      [nombre, numero_telefono, firebaseUid]
     );
     return result.rows[0];
   }
 
-  static async delete(id) {
+  static async delete(firebaseUid) {
     const result = await pool.query(
-      "DELETE FROM usuarios WHERE id_usuario = $1 RETURNING *",
-      [id]
+      "DELETE FROM usuarios WHERE firebase_uid = $1 RETURNING *",
+      [firebaseUid]
     );
     return result.rows[0];
   }
