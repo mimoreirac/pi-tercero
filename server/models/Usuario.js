@@ -2,19 +2,26 @@ import pool from "../db.js";
 import bcrypt from "bcrypt";
 
 class Usuario {
-  static async create({ email, nombre, numero_telefono, password }) {
-    const saltRounds = 12;
-    const password_hash = await bcrypt.hash(password, saltRounds);
+  static async findByFirebaseUid(firebaseUid) {
+    const result = await pool.query(
+      "SELECT * FROM usuarios WHERE firebase_uid = $1",
+      [firebaseUid]
+    );
+    return result.rows[0];
+  }
+
+  static async create({ firebase_uid, email, nombre, numero_telefono }) {
     try {
       const result = await pool.query(
-        "INSERT INTO usuarios (email, nombre, numero_telefono, password_hash) VALUES ($1, $2, $3, $4) RETURNING *",
-        [email, nombre, numero_telefono, password_hash]
+        "INSERT INTO usuarios (firebase_uid, email, nombre, numero_telefono) VALUES ($1, $2, $3, $4) RETURNING *",
+        [firebase_uid, email, nombre, numero_telefono]
       );
       return result.rows[0];
     } catch (error) {
       if (error.code === "23505") {
-        // Para manejo de errores de los campos UNIQUE
-        throw new Error(`El ${error.constraint.includes("email") ? "email" : "número de teléfono"} ya está en uso.`);
+        throw new Error(
+          `El ${error.constraint.includes("email") ? "email" : "número de teléfono"} ya está en uso.`
+        );
       }
       throw error;
     }

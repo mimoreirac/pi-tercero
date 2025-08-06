@@ -8,7 +8,11 @@ const app = express();
 
 app.use(express.json());
 
-app.use(usuarioRoutes);
-app.use(viajeRoutes);
+app.use("/api/usuarios", usuarioRoutes);
+app.use("/api/viajes", viajeRoutes);
+
+app.listen(port, () => {
+  console.log(`Servidor escuchando en el puerto: ${port}`)
+})
 
 export default app;

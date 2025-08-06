@@ -1,11 +1,17 @@
 import { Router } from "express";
-import { createViaje, getViajeById, updateViaje, deleteViaje } from "../controllers/viajesController.js";
+import {
+  createViaje,
+  getViajeById,
+  updateViaje,
+  deleteViaje,
+} from "../controllers/viajesController.js";
+import { protect } from "../middleware/auth.js";
 
 const router = Router();
 
-router.post("/viajes", createViaje);
-router.get("/viajes/:id", getViajeById);
-router.put("/viajes/:id", updateViaje);
-router.delete("/viajes/:id", deleteViaje);
+router.post("/", protect, createViaje);
+router.get("/:id", getViajeById);
+router.put("/:id", protect, updateViaje);
+router.delete("/:id", protect, deleteViaje);
 
 export default router;
