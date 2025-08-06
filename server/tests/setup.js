@@ -3,13 +3,30 @@ import { vi } from "vitest";
 
 dotenv.config();
 
+const mockUsers = {
+  conductor: {
+    uid: "conductor-firebase-uid",
+    email: "conductor@test.com",
+    name: "Conductor de Pruebas",
+  },
+  pasajero: {
+    uid: "pasajero-firebase-uid",
+    email: "pasajero@test.com",
+    name: "Pasajero de Pruebas",
+  },
+};
+
 // Para los tests, estamos implementando un firebase-admin falso
 vi.mock("firebase-admin", () => {
   const mockAuth = {
-    verifyIdToken: vi.fn().mockResolvedValue({
-      uid: "test-firebase-uid",
-      email: "test@example.com",
-      name: "Test User",
+    verifyIdToken: vi.fn().mockImplementation((token) => {
+      if (token === "conductor-token") {
+        return Promise.resolve(mockUsers.conductor);
+      }
+      if (token === "pasajero-token") {
+        return Promise.resolve(mockUsers.pasajero);
+      }
+      return Promise.resolve(mockUsers.conductor); // Default mock user
     }),
   };
 
