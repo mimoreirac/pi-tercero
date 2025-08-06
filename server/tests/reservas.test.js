@@ -9,7 +9,6 @@ describe("CRUD de reservas", () => {
   let viajeId;
 
   beforeAll(async () => {
-    // Create a conductor and a pasajero for the tests
     const conductorResponse = await supertest(app).post("/usuarios").send({
       email: "conductor@puce.edu.ec",
       nombre: "Conductor de Pruebas",
@@ -26,7 +25,6 @@ describe("CRUD de reservas", () => {
     });
     pasajeroId = pasajeroResponse.body.id_usuario;
 
-    // Create a viaje for the tests
     const viajeResponse = await supertest(app).post("/viajes").send({
       id_conductor: conductorId,
       origen: "Quito",
@@ -41,7 +39,6 @@ describe("CRUD de reservas", () => {
   });
 
   afterAll(async () => {
-    // Clean up the database
     await pool.query("DELETE FROM reservas");
     await pool.query("DELETE FROM viajes");
     await pool.query("DELETE FROM usuarios");
@@ -49,7 +46,6 @@ describe("CRUD de reservas", () => {
   });
 
   afterEach(async () => {
-    // Clean up the reservas table
     await pool.query("DELETE FROM reservas");
   });
 
