@@ -1,9 +1,9 @@
 CREATE TABLE usuarios (
 	id_usuario SERIAL PRIMARY KEY,
+	firebase_uid VARCHAR(128) UNIQUE NOT NULL,
 	email VARCHAR(100) UNIQUE NOT NULL,
 	nombre VARCHAR(100) NOT NULL,
 	numero_telefono VARCHAR(10) UNIQUE NOT NULL,
-	password_hash VARCHAR(60) NOT NULL,
 	created_at TIMESTAMP DEFAULT NOW(),
 	updated_at TIMESTAMP DEFAULT NOW()
 );

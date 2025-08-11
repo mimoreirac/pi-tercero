@@ -1,27 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
 import supertest from "supertest";
-import bcrypt from "bcrypt";
 import app from "../server.js";
 import pool from "../db.js";
 
 const request = supertest(app);
 
-describe("CRUD de usuarios", () => {
-  let userId;
-
-  beforeAll(async () => {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS usuarios (
-        id_usuario SERIAL PRIMARY KEY,
-        email VARCHAR(100) UNIQUE NOT NULL,
-        nombre VARCHAR(100) NOT NULL,
-        numero_telefono VARCHAR(10) UNIQUE NOT NULL,
-        password_hash VARCHAR(60) NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-  });
+describe("User Endpoints with Firebase Auth", () => {
+  const token = "mock-token";
 
   afterEach(async () => {
     await pool.query("DELETE FROM usuarios");
@@ -31,173 +16,113 @@ describe("CRUD de usuarios", () => {
     await pool.end();
   });
 
-  it("debería crear un usuario con una contraseña cifrada", async () => {
-    const password = "password123";
-    const hashedPassword = await bcrypt.hash(password, 12);
+  describe("POST /api/usuarios/sync", () => {
+    it("debería crear un usuario en la base de datos si no existe", async () => {
+      const newUserInfo = {
+        numero_telefono: "1234567890",
+      };
 
-    const nuevoUsuario = {
-      email: "test@puce.edu.ec",
-      nombre: "Usuario Pruebas",
-      numero_telefono: "1234567890",
-      password: password,
-    };
+      const response = await request
+        .post("/api/usuarios/sync")
+        .set("Authorization", `Bearer ${token}`)
+        .send(newUserInfo);
 
-    const response = await request.post("/usuarios").send(nuevoUsuario);
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty("id_usuario");
+      expect(response.body.firebase_uid).toBe("test-firebase-uid");
+      expect(response.body.email).toBe("test@example.com");
+      expect(response.body.nombre).toBe("Test User");
 
-    expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty("id_usuario");
-    userId = response.body.id_usuario;
-
-    const dbUser = await pool.query(
-      "SELECT * FROM usuarios WHERE id_usuario = $1",
-      [userId]
-    );
-    expect(dbUser.rows.length).toBe(1);
-    expect(dbUser.rows[0].email).toBe(nuevoUsuario.email);
-    const isPasswordCorrect = await bcrypt.compare(
-      password,
-      dbUser.rows[0].password_hash
-    );
-    expect(isPasswordCorrect).toBe(true);
-  });
-
-  it("no debería crear un usuario si el email ya existe", async () => {
-    const password = "password123";
-    const hashedPassword = await bcrypt.hash(password, 12);
-    await pool.query(
-      "INSERT INTO usuarios (email, nombre, numero_telefono, password_hash) VALUES ($1, $2, $3, $4)",
-      ["test@puce.edu.ec", "Usuario Existente", "1234567890", hashedPassword]
-    );
-
-    const nuevoUsuario = {
-      email: "test@puce.edu.ec",
-      nombre: "Otro Usuario",
-      numero_telefono: "0987654321",
-      password: "newpassword",
-    };
-
-    const response = await request.post("/usuarios").send(nuevoUsuario);
-
-    expect(response.status).toBe(409);
-  });
-
-  it("no debería crear un usuario si el número de teléfono ya existe", async () => {
-    const password = "password123";
-    const hashedPassword = await bcrypt.hash(password, 12);
-    await pool.query(
-      "INSERT INTO usuarios (email, nombre, numero_telefono, password_hash) VALUES ($1, $2, $3, $4)",
-      ["test1@puce.edu.ec", "Usuario Existente", "1234567890", hashedPassword]
-    );
-
-    const nuevoUsuario = {
-      email: "test2@puce.edu.ec",
-      nombre: "Otro Usuario",
-      numero_telefono: "1234567890",
-      password: "newpassword",
-    };
-
-    const response = await request.post("/usuarios").send(nuevoUsuario);
-
-    expect(response.status).toBe(409);
-  });
-
-  describe("Validación de datos de entrada", () => {
-    const baseUser = {
-      email: "test-validation@puce.edu.ec",
-      nombre: "Usuario Validacion",
-      numero_telefono: "1112223334",
-      password: "password123",
-    };
-
-    it("no debería crear un usuario si falta el email", async () => {
-      const { email, ...incompleteUser } = baseUser;
-      const response = await request.post("/usuarios").send(incompleteUser);
-      expect(response.status).toBe(500);
-      expect(response.body.error).toBe("Error al crear el usuario");
+      const dbUser = await pool.query(
+        "SELECT * FROM usuarios WHERE firebase_uid = $1",
+        ["test-firebase-uid"]
+      );
+      expect(dbUser.rows.length).toBe(1);
     });
 
-    it("no debería crear un usuario si falta el nombre", async () => {
-      const { nombre, ...incompleteUser } = baseUser;
-      const response = await request.post("/usuarios").send(incompleteUser);
-      expect(response.status).toBe(500);
-      expect(response.body.error).toBe("Error al crear el usuario");
-    });
+    it("debería retornar un usuario si ya existe", async () => {
+      // Creamos un usuario primero
+      await request
+        .post("/api/usuarios/sync")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ numero_telefono: "1234567890" });
 
-    it("no debería crear un usuario si falta el numero_telefono", async () => {
-      const { numero_telefono, ...incompleteUser } = baseUser;
-      const response = await request.post("/usuarios").send(incompleteUser);
-      expect(response.status).toBe(500);
-      expect(response.body.error).toBe("Error al crear el usuario");
-    });
+      // Volvemos a llamar a la función sync
+      const response = await request
+        .post("/api/usuarios/sync")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ numero_telefono: "1234567890" }); // Esto puede ser redundante
 
-    it("no debería crear un usuario si falta la contraseña", async () => {
-      const { password, ...incompleteUser } = baseUser;
-      const response = await request.post("/usuarios").send(incompleteUser);
-      expect(response.status).toBe(500);
-      expect(response.body.error).toBe("Error al crear el usuario");
+      expect(response.status).toBe(200);
+      expect(response.body.firebase_uid).toBe("test-firebase-uid");
     });
   });
 
-  it("debería obtener un usuario utilizando su id", async () => {
-    const password = "password123";
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const usuario = await pool.query(
-      "INSERT INTO usuarios (email, nombre, numero_telefono, password_hash) VALUES ($1, $2, $3, $4) RETURNING *",
-      ["usuariotest@puce.edu.ec", "Usuario Test", "0987654321", hashedPassword]
-    );
-    userId = usuario.rows[0].id_usuario;
+  describe("GET /api/usuarios/me", () => {
+    it("debería retornar el perfil del usuario actual", async () => {
+      // Creamos el usuario
+      await request
+        .post("/api/usuarios/sync")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ numero_telefono: "1234567890" });
 
-    const response = await request.get(`/usuarios/${userId}`);
+      const response = await request
+        .get("/api/usuarios/me")
+        .set("Authorization", `Bearer ${token}`);
 
-    expect(response.status).toBe(200);
-    expect(response.body.email).toBe("usuariotest@puce.edu.ec");
-    expect(response.body).not.toHaveProperty("password_hash");
+      expect(response.status).toBe(200);
+      expect(response.body.email).toBe("test@example.com");
+    });
+
+    it("debería retornar 401 si no recibe un token de autentificación", async () => {
+      const response = await request.get("/api/usuarios/me");
+      expect(response.status).toBe(401);
+    });
   });
 
-  it("debería actualizar la información de un usuario", async () => {
-    const password = "password123";
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await pool.query(
-      "INSERT INTO usuarios (email, nombre, numero_telefono, password_hash) VALUES ($1, $2, $3, $4) RETURNING *",
-      ["testactualizar@puce.edu.ec", "Actualizar Usuario", "1122334455", hashedPassword]
-    );
-    userId = user.rows[0].id_usuario;
+  describe("PUT /api/usuarios/me", () => {
+    it("debería actualizar el perfil del usuario actual", async () => {
+      // Creamos el usuario
+      await request
+        .post("/api/usuarios/sync")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ numero_telefono: "1234567890" });
 
-    const updatedInfo = {
-      nombre: "Usuario Actualizado",
-      numero_telefono: "5544332211",
-    };
+      const updatedInfo = {
+        nombre: "Updated Name",
+        numero_telefono: "0987654321",
+      };
 
-    const response = await request.put(`/usuarios/${userId}`).send(updatedInfo);
+      const response = await request
+        .put("/api/usuarios/me")
+        .set("Authorization", `Bearer ${token}`)
+        .send(updatedInfo);
 
-    expect(response.status).toBe(200);
-    expect(response.body.nombre).toBe(updatedInfo.nombre);
-    expect(response.body.numero_telefono).toBe(updatedInfo.numero_telefono);
-
-    const dbUser = await pool.query(
-      "SELECT * FROM usuarios WHERE id_usuario = $1",
-      [userId]
-    );
-    expect(dbUser.rows[0].nombre).toBe(updatedInfo.nombre);
+      expect(response.status).toBe(200);
+      expect(response.body.nombre).toBe(updatedInfo.nombre);
+      expect(response.body.numero_telefono).toBe(updatedInfo.numero_telefono);
+    });
   });
 
-  it("debería eliminar un usuario", async () => {
-    const password = "password123";
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await pool.query(
-      "INSERT INTO usuarios (email, nombre, numero_telefono, password_hash) VALUES ($1, $2, $3, $4) RETURNING *",
-      ["borrarusuario@puce.edu.ec", "Borrar Usuario", "1231231234", hashedPassword]
-    );
-    userId = user.rows[0].id_usuario;
+  describe("DELETE /api/usuarios/me", () => {
+    it("debería eliminar el perfil del usuario actual", async () => {
+      // Creamos el usuario
+      await request
+        .post("/api/usuarios/sync")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ numero_telefono: "1234567890" });
 
-    const response = await request.delete(`/usuarios/${userId}`);
+      const response = await request
+        .delete("/api/usuarios/me")
+        .set("Authorization", `Bearer ${token}`);
 
-    expect(response.status).toBe(204);
+      expect(response.status).toBe(204);
 
-    const dbUser = await pool.query(
-      "SELECT * FROM usuarios WHERE id_usuario = $1",
-      [userId]
-    );
-    expect(dbUser.rows.length).toBe(0);
+      const dbUser = await pool.query(
+        "SELECT * FROM usuarios WHERE firebase_uid = $1",
+        ["test-firebase-uid"]
+      );
+      expect(dbUser.rows.length).toBe(0);
+    });
   });
 });

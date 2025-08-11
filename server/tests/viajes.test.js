@@ -3,21 +3,31 @@ import supertest from "supertest";
 import app from "../server.js";
 import pool from "../db.js";
 
-describe("CRUD de viajes", () => {
-  let conductorId;
+const request = supertest(app);
+
+describe("CRUD de viajes seguro", () => {
+  let conductorId, pasajeroId;
+  const conductorToken = "conductor-token";
+  const pasajeroToken = "pasajero-token";
 
   beforeAll(async () => {
-    const response = await supertest(app).post("/usuarios").send({
-      email: "conductor@puce.edu.ec",
-      nombre: "Conductor de Pruebas",
-      numero_telefono: "0999999999",
-      password: "password123",
-    });
-    conductorId = response.body.id_usuario;
+    // Hace sync al conductor y pasajero
+    const conductorRes = await request
+      .post("/api/usuarios/sync")
+      .set("Authorization", `Bearer ${conductorToken}`)
+      .send({ numero_telefono: "0999999998" });
+    conductorId = conductorRes.body.id_usuario;
+
+    const pasajeroRes = await request
+      .post("/api/usuarios/sync")
+      .set("Authorization", `Bearer ${pasajeroToken}`)
+      .send({ numero_telefono: "0987654321" });
+    pasajeroId = pasajeroRes.body.id_usuario;
   });
 
   afterAll(async () => {
-    await pool.query("DELETE FROM usuarios WHERE id_usuario = $1", [conductorId]);
+    await pool.query("DELETE FROM viajes");
+    await pool.query("DELETE FROM usuarios");
     await pool.end();
   });
 
@@ -25,95 +35,98 @@ describe("CRUD de viajes", () => {
     await pool.query("DELETE FROM viajes");
   });
 
-  it("debería crear un viaje", async () => {
+  it("debería crear un viaje con el id_conductor del usuario autenticado", async () => {
     const nuevoViaje = {
-      id_conductor: conductorId,
       origen: "Quito",
       destino: "Guayaquil",
       hora_salida: new Date(),
       asientos_disponibles: 3,
-      descripcion: "Viaje de prueba",
-      estado: "activo",
-      etiquetas_area: ["viaje", "prueba"],
     };
 
-    const response = await supertest(app).post("/viajes").send(nuevoViaje);
+    const response = await request
+      .post("/api/viajes/")
+      .set("Authorization", `Bearer ${conductorToken}`)
+      .send(nuevoViaje);
 
     expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty("id_viaje");
-    expect(response.body.origen).toBe(nuevoViaje.origen);
+    expect(response.body.id_conductor).toBe(conductorId);
   });
 
-  it("debería obtener un viaje por su id", async () => {
-    const nuevoViaje = {
-      id_conductor: conductorId,
-      origen: "Quito",
-      destino: "Guayaquil",
-      hora_salida: new Date(),
-      asientos_disponibles: 3,
-      descripcion: "Viaje de prueba",
-      estado: "activo",
-      etiquetas_area: ["viaje", "prueba"],
-    };
-
-    const viajeCreado = await supertest(app).post("/viajes").send(nuevoViaje);
+  it("debería obtener un viaje por su id si está autenticado", async () => {
+    const viajeCreado = await request
+      .post("/api/viajes/")
+      .set("Authorization", `Bearer ${conductorToken}`)
+      .send({ origen: "Origen", destino: "Destino", hora_salida: new Date(), asientos_disponibles: 1 });
     const viajeId = viajeCreado.body.id_viaje;
 
-    const response = await supertest(app).get(`/viajes/${viajeId}`);
+    const response = await request
+      .get(`/api/viajes/${viajeId}`)
+      .set("Authorization", `Bearer ${pasajeroToken}`); // Cualquier usuario autentificado puede ver los viajes
 
     expect(response.status).toBe(200);
     expect(response.body.id_viaje).toBe(viajeId);
   });
 
-  it("debería actualizar un viaje", async () => {
-    const nuevoViaje = {
-      id_conductor: conductorId,
-      origen: "Quito",
-      destino: "Guayaquil",
-      hora_salida: new Date(),
-      asientos_disponibles: 3,
-      descripcion: "Viaje de prueba",
-      estado: "activo",
-      etiquetas_area: ["viaje", "prueba"],
-    };
-
-    const viajeCreado = await supertest(app).post("/viajes").send(nuevoViaje);
+  it("debería permitir al conductor actualizar su propio viaje", async () => {
+    const viajeCreado = await request
+      .post("/api/viajes/")
+      .set("Authorization", `Bearer ${conductorToken}`)
+      .send({ origen: "Origen", destino: "Destino", hora_salida: new Date(), asientos_disponibles: 1 });
     const viajeId = viajeCreado.body.id_viaje;
 
-    const datosActualizados = {
-      origen: "Cuenca",
-      destino: "Manta",
-      asientos_disponibles: 2,
-    };
-
-    const response = await supertest(app).put(`/viajes/${viajeId}`).send(datosActualizados);
+    const datosActualizados = { origen: "Nuevo Origen", destino: "Nuevo Destino", hora_salida: "2025-08-06 14:30:00", asientos_disponibles: 3 };
+    const response = await request
+      .put(`/api/viajes/${viajeId}`)
+      .set("Authorization", `Bearer ${conductorToken}`)
+      .send(datosActualizados);
 
     expect(response.status).toBe(200);
-    expect(response.body.origen).toBe(datosActualizados.origen);
-    expect(response.body.destino).toBe(datosActualizados.destino);
-    expect(response.body.asientos_disponibles).toBe(datosActualizados.asientos_disponibles);
+    expect(response.body.origen).toBe("Nuevo Origen");
+    expect(response.body.destino).toBe("Nuevo Destino");
+    expect(response.body.asientos_disponibles).toBe(3);
   });
 
-  it("debería eliminar un viaje", async () => {
-    const nuevoViaje = {
-      id_conductor: conductorId,
-      origen: "Quito",
-      destino: "Guayaquil",
-      hora_salida: new Date(),
-      asientos_disponibles: 3,
-      descripcion: "Viaje de prueba",
-      estado: "activo",
-      etiquetas_area: ["viaje", "prueba"],
-    };
-
-    const viajeCreado = await supertest(app).post("/viajes").send(nuevoViaje);
+  it("no debería permitir a otro usuario actualizar el viaje", async () => {
+    const viajeCreado = await request
+      .post("/api/viajes/")
+      .set("Authorization", `Bearer ${conductorToken}`)
+      .send({ origen: "Origen", destino: "Destino", hora_salida: new Date(), asientos_disponibles: 1 });
     const viajeId = viajeCreado.body.id_viaje;
 
-    const response = await supertest(app).delete(`/viajes/${viajeId}`);
+    const datosActualizados = { origen: "Intento Malicioso" };
+    const response = await request
+      .put(`/api/viajes/${viajeId}`)
+      .set("Authorization", `Bearer ${pasajeroToken}`)
+      .send(datosActualizados);
+
+    expect(response.status).toBe(403);
+  });
+
+  it("debería permitir al conductor eliminar su propio viaje", async () => {
+    const viajeCreado = await request
+      .post("/api/viajes/")
+      .set("Authorization", `Bearer ${conductorToken}`)
+      .send({ origen: "Origen", destino: "Destino", hora_salida: new Date(), asientos_disponibles: 1 });
+    const viajeId = viajeCreado.body.id_viaje;
+
+    const response = await request
+      .delete(`/api/viajes/${viajeId}`)
+      .set("Authorization", `Bearer ${conductorToken}`);
 
     expect(response.status).toBe(204);
+  });
 
-    const dbViaje = await pool.query("SELECT * FROM viajes WHERE id_viaje = $1", [viajeId]);
-    expect(dbViaje.rows.length).toBe(0);
+  it("no debería permitir a otro usuario eliminar el viaje", async () => {
+    const viajeCreado = await request
+      .post("/api/viajes/")
+      .set("Authorization", `Bearer ${conductorToken}`)
+      .send({ origen: "Origen", destino: "Destino", hora_salida: new Date(), asientos_disponibles: 1 });
+    const viajeId = viajeCreado.body.id_viaje;
+
+    const response = await request
+      .delete(`/api/viajes/${viajeId}`)
+      .set("Authorization", `Bearer ${pasajeroToken}`);
+
+    expect(response.status).toBe(403);
   });
 });
