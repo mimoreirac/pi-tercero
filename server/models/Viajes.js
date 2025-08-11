@@ -7,9 +7,9 @@ class Viaje {
     destino,
     hora_salida,
     asientos_disponibles,
-    descripcion,
-    estado,
-    etiquetas_area,
+    descripcion = null,
+    estado = "activo",
+    etiquetas_area = null,
   }) {
     const result = await pool.query(
       "INSERT INTO viajes (id_conductor, origen, destino, hora_salida, asientos_disponibles, descripcion, estado, etiquetas_area) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
@@ -34,11 +34,34 @@ class Viaje {
     return result.rows[0];
   }
 
-  static async update(id, { origen, destino, asientos_disponibles }) {
-    const result = await pool.query(
-      "UPDATE viajes SET origen = $1, destino = $2, asientos_disponibles = $3, updated_at = NOW() WHERE id_viaje = $4 RETURNING *",
-      [origen, destino, asientos_disponibles, id]
+    static async update(id, updates) {
+    const allowedFields = [
+      "origen",
+      "destino",
+      "hora_salida",
+      "asientos_disponibles",
+      "descripcion",
+      "estado",
+      "etiquetas_area",
+    ];
+
+    const fieldsToUpdate = Object.keys(updates).filter((field) =>
+      allowedFields.includes(field)
     );
+
+    if (fieldsToUpdate.length === 0) {
+      return this.findById(id); // No hay campos validos para actualizar
+    }
+
+    const setClause = fieldsToUpdate
+      .map((field, index) => `"${field}" = $${index + 1}`)
+      .join(", ");
+
+    const values = fieldsToUpdate.map((field) => updates[field]);
+
+    const query = `UPDATE viajes SET ${setClause}, updated_at = NOW() WHERE id_viaje = $${fieldsToUpdate.length + 1} RETURNING *`;
+
+    const result = await pool.query(query, [...values, id]);
     return result.rows[0];
   }
 
