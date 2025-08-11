@@ -101,6 +101,43 @@ describe("CRUD de usuarios", () => {
     expect(response.status).toBe(409);
   });
 
+  describe("Validación de datos de entrada", () => {
+    const baseUser = {
+      email: "test-validation@puce.edu.ec",
+      nombre: "Usuario Validacion",
+      numero_telefono: "1112223334",
+      password: "password123",
+    };
+
+    it("no debería crear un usuario si falta el email", async () => {
+      const { email, ...incompleteUser } = baseUser;
+      const response = await request.post("/usuarios").send(incompleteUser);
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error al crear el usuario");
+    });
+
+    it("no debería crear un usuario si falta el nombre", async () => {
+      const { nombre, ...incompleteUser } = baseUser;
+      const response = await request.post("/usuarios").send(incompleteUser);
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error al crear el usuario");
+    });
+
+    it("no debería crear un usuario si falta el numero_telefono", async () => {
+      const { numero_telefono, ...incompleteUser } = baseUser;
+      const response = await request.post("/usuarios").send(incompleteUser);
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error al crear el usuario");
+    });
+
+    it("no debería crear un usuario si falta la contraseña", async () => {
+      const { password, ...incompleteUser } = baseUser;
+      const response = await request.post("/usuarios").send(incompleteUser);
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe("Error al crear el usuario");
+    });
+  });
+
   it("debería obtener un usuario utilizando su id", async () => {
     const password = "password123";
     const hashedPassword = await bcrypt.hash(password, 12);
