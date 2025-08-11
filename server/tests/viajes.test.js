@@ -7,7 +7,6 @@ describe("CRUD de viajes", () => {
   let conductorId;
 
   beforeAll(async () => {
-    // Create a conductor for the tests
     const response = await supertest(app).post("/usuarios").send({
       email: "conductor@puce.edu.ec",
       nombre: "Conductor de Pruebas",
@@ -18,13 +17,11 @@ describe("CRUD de viajes", () => {
   });
 
   afterAll(async () => {
-    // Clean up the conductor
     await pool.query("DELETE FROM usuarios WHERE id_usuario = $1", [conductorId]);
     await pool.end();
   });
 
   afterEach(async () => {
-    // Clean up the viajes table
     await pool.query("DELETE FROM viajes");
   });
 
