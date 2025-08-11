@@ -9,6 +9,14 @@ class Reserva {
     return result.rows[0];
   }
 
+  static async findById(id) {
+    const result = await pool.query(
+      "SELECT * FROM reservas WHERE id_reserva = $1",
+      [id]
+    );
+    return result.rows[0];
+  }
+
   static async updateEstado(id, nuevoEstado) {
     const result = await pool.query(
       "UPDATE reservas SET estado = $1, updated_at = NOW() WHERE id_reserva = $2 RETURNING *",
@@ -19,8 +27,16 @@ class Reserva {
 
   static async findByViaje(id_viaje) {
     const result = await pool.query(
-      "SELECT * FROM reservas WHERE id_viaje = $1",
+      "SELECT * FROM reservas WHERE id_viaje = $1 AND estado NOT IN ('rechazada', 'cancelada')",
       [id_viaje]
+    );
+    return result.rows;
+  }
+
+  static async findUserReservationForTrip(id_pasajero, id_viaje) {
+    const result = await pool.query(
+      "SELECT * FROM reservas WHERE id_pasajero = $1 AND id_viaje = $2 AND estado NOT IN ('rechazada', 'cancelada')",
+      [id_pasajero, id_viaje]
     );
     return result.rows;
   }
