@@ -1,27 +1,24 @@
-import express from "express";
-import Reserva from "../models/Reserva.js";
+import { Router } from "express";
+import { protect } from "../middleware/auth.js";
+import {
+  createReserva,
+  getReservaByViaje,
+  updateReservaStatus,
+  cancelReserva,
+} from "../controllers/reservasController.js";
 
-const router = express.Router();
+const router = Router();
 
-// Crear una reserva
-router.post("/", async (req, res) => {
-  try {
-    const { id_viaje, id_pasajero } = req.body;
-    const nuevaReserva = await Reserva.create({ id_viaje, id_pasajero });
-    res.status(201).json(nuevaReserva);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
+// Crear una reserva para un viaje
+router.post("/", protect, createReserva);
 
-// Obtener todas las reservas
-router.get("/", async (req, res) => {
-  try {
-    const reservas = await Reserva.findAll();
-    res.json(reservas);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// Obtener todas las reservas de un viaje
+router.get("/viaje/:id", protect, getReservaByViaje);
+
+// Actualizar el estado de una reserva (conductor)
+router.put("/:id_reserva/estado", protect, updateReservaStatus);
+
+// Cancelar una reserva (pasajero)
+router.put("/:id_reserva/cancelar", protect, cancelReserva);
 
 export default router;
