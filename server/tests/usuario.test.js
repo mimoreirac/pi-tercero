@@ -29,13 +29,13 @@ describe("User Endpoints with Firebase Auth", () => {
 
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty("id_usuario");
-      expect(response.body.firebase_uid).toBe("test-firebase-uid");
-      expect(response.body.email).toBe("test@example.com");
-      expect(response.body.nombre).toBe("Test User");
+      expect(response.body.firebase_uid).toBe("conductor-firebase-uid");
+      expect(response.body.email).toBe("conductor@test.com");
+      expect(response.body.nombre).toBe("Conductor de Pruebas");
 
       const dbUser = await pool.query(
         "SELECT * FROM usuarios WHERE firebase_uid = $1",
-        ["test-firebase-uid"]
+        ["conductor-firebase-uid"]
       );
       expect(dbUser.rows.length).toBe(1);
     });
@@ -54,7 +54,7 @@ describe("User Endpoints with Firebase Auth", () => {
         .send({ numero_telefono: "1234567890" }); // Esto puede ser redundante
 
       expect(response.status).toBe(200);
-      expect(response.body.firebase_uid).toBe("test-firebase-uid");
+      expect(response.body.firebase_uid).toBe("conductor-firebase-uid");
     });
   });
 
@@ -71,7 +71,7 @@ describe("User Endpoints with Firebase Auth", () => {
         .set("Authorization", `Bearer ${token}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.email).toBe("test@example.com");
+      expect(response.body.email).toBe("conductor@test.com");
     });
 
     it("debería retornar 401 si no recibe un token de autentificación", async () => {

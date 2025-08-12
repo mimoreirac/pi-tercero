@@ -31,6 +31,15 @@ export const getViajeById = async (req, res) => {
   }
 };
 
+export const getActiveViajes = async (req, res) => {
+  try {
+    const viajes = await Viaje.findAllActive();
+    res.status(200).json(viajes);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener los viajes activos" });
+  }
+};
+
 export const updateViaje = async (req, res) => {
   try {
     const currentUser = await Usuario.findByFirebaseUid(req.user.uid);
