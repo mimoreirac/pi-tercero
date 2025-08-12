@@ -14,6 +14,11 @@ const mockUsers = {
     email: "pasajero@test.com",
     name: "Pasajero de Pruebas",
   },
+  otro: {
+    uid: "otro-firebase-uid",
+    email: "otro@test.com",
+    name: "Otro de Pruebas",
+  },
 };
 
 // Para los tests, estamos implementando un firebase-admin falso
@@ -25,6 +30,9 @@ vi.mock("firebase-admin", () => {
       }
       if (token === "pasajero-token") {
         return Promise.resolve(mockUsers.pasajero);
+      }
+      if (token === "otro-token") {
+        return Promise.resolve(mockUsers.otro);
       }
       return Promise.resolve(mockUsers.conductor); // Default mock user
     }),
