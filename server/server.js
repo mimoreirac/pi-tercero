@@ -1,5 +1,4 @@
 import express from "express";
-import pool from "./db.js";
 import usuarioRoutes from "./routes/usuarioRoutes.js";
 import viajeRoutes from "./routes/viajeRoutes.js";
 import reservasRoutes from "./routes/reservasRoutes.js";
@@ -13,7 +12,7 @@ app.use(express.json());
 app.use("/api/usuarios", usuarioRoutes);
 app.use("/api/viajes", viajeRoutes);
 app.use("/api/reservas", reservasRoutes);
-app.use("api/incidentes", incidentesRoutes)
+app.use("/api/incidentes", incidentesRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor escuchando en el puerto: ${port}`)
