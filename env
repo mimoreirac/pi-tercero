@@ -1,0 +1,2 @@
+DATABASE_URL=postgresql://ships_od8r_user:lmZsRLBu4y91WQ2G4k3prGxgXBnPYuDL@dpg-d1utqjvdiees73b3hvu0-a.ohio-postgres.render.com/ships_od8r
+PORT=3000
