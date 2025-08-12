@@ -34,6 +34,13 @@ class Viaje {
     return result.rows[0];
   }
 
+  static async findAllActive() {
+    const result = await pool.query(
+      "SELECT * FROM viajes WHERE estado = 'activo'"
+    );
+    return result.rows;
+  }
+
     static async update(id, updates) {
     const allowedFields = [
       "origen",

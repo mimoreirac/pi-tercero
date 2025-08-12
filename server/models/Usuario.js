@@ -1,5 +1,4 @@
 import pool from "../db.js";
-import bcrypt from "bcrypt";
 
 class Usuario {
   static async findByFirebaseUid(firebaseUid) {
