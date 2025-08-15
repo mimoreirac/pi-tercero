@@ -22,11 +22,9 @@ export const createReserva = async (req, res) => {
 
     // 3. Chequea que el viaje se encuentre activo
     if (viaje.estado !== "activo") {
-      return res
-        .status(400)
-        .json({
-          error: "No se puede reservar en un viaje que no está activo.",
-        });
+      return res.status(400).json({
+        error: "No se puede reservar en un viaje que no está activo.",
+      });
     }
 
     // 4. Chequea que hayan asientos disponibles
@@ -46,7 +44,7 @@ export const createReserva = async (req, res) => {
     // 6. Chequea reservas duplicadas
     const existingReserva = await Reserva.findUserReservationForTrip(
       currentUser.id_usuario,
-      id_viaje,
+      id_viaje
     );
     if (existingReserva.length > 0) {
       return res
@@ -70,13 +68,36 @@ export const createReserva = async (req, res) => {
 // Obtener todas las reservas por viaje
 export const getReservaByViaje = async (req, res) => {
   try {
+    const firebaseUid = req.user.uid;
+
+    const currentUser = await Usuario.findByFirebaseUid(firebaseUid);
+    if (!currentUser) {
+      return res
+        .status(403)
+        .json({ error: "Usuario no existe en la base de datos." });
+    }
+
+    const viaje = await Viaje.findById(req.params.id);
+
+    if (viaje.id_conductor !== currentUser.id_usuario) {
+      const existingReserva = await Reserva.findUserReservationForTrip(
+        currentUser.id_usuario,
+        req.params.id
+      );
+      if (existingReserva.length > 0) {
+        return res.status(200).json(existingReserva);
+      } else {
+        return res.status(200).json({
+          error: "No tienes reservas en este viaje",
+        });
+      }
+    }
+
     const reservasViaje = await Reserva.findByViaje(req.params.id);
     if (reservasViaje.length === 0) {
-      return res
-        .status(404)
-        .json({
-          message: "No se encontraron reservas activas para este viaje.",
-        });
+      return res.status(200).json({
+        message: "No se encontraron reservas activas para este viaje.",
+      });
     }
     res.status(200).json(reservasViaje);
   } catch (error) {
@@ -138,11 +159,9 @@ export const cancelReserva = async (req, res) => {
 
     // Solo se puede cancelar si está pendiente o confirmada
     if (!["pendiente", "confirmada"].includes(reserva.estado)) {
-      return res
-        .status(400)
-        .json({
-          error: `No se puede cancelar una reserva en estado '${reserva.estado}'.`,
-        });
+      return res.status(400).json({
+        error: `No se puede cancelar una reserva en estado '${reserva.estado}'.`,
+      });
     }
 
     const updatedReserva = await Reserva.updateEstado(id_reserva, "cancelada");
@@ -151,3 +170,32 @@ export const cancelReserva = async (req, res) => {
     res.status(500).json({ error: "Error al cancelar la reserva." });
   }
 };
+
+// Obtener mi reserva en un viaje
+// export const getMyReserva = async (req, res) => {
+//   try {
+//     const firebaseUid = req.user.uid;
+//     const { id_viaje } = req.body;
+
+//     const currentUser = await Usuario.findByFirebaseUid(firebaseUid);
+//     if (!currentUser) {
+//       return res
+//         .status(403)
+//         .json({ error: "Usuario no existe en la base de datos." });
+//     }
+
+//     const existingReserva = await Reserva.findUserReservationForTrip(
+//       currentUser.id_usuario,
+//       id_viaje
+//     );
+//     if (existingReserva.length > 0) {
+//       return res.status(200).json(existingReserva);
+//     } else {
+//       return res
+//         .status(404)
+//         .json({ message: "No existen reservas para este usuario en el viaje" });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ error: "Error al obtener la reseva." });
+//   }
+// };

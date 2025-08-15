@@ -1,8 +1,8 @@
 import Usuario from "../models/Usuario.js";
 
 export const getOrCreateUser = async (req, res) => {
-  const { uid, email, name } = req.user; // Debemos setear el displayName del usuario en el frontend para que nos mande un name
-  const { numero_telefono } = req.body;
+  const { uid, email } = req.user;
+  const { numero_telefono, nombre } = req.body;
 
   try {
     let user = await Usuario.findByFirebaseUid(uid);
@@ -16,7 +16,7 @@ export const getOrCreateUser = async (req, res) => {
     const newUser = await Usuario.create({
       firebase_uid: uid,
       email,
-      nombre: name,
+      nombre: nombre,
       numero_telefono,
     });
 
@@ -35,7 +35,21 @@ export const getMe = async (req, res) => {
     const user = await Usuario.findByFirebaseUid(req.user.uid);
     if (!user) {
       // Si el sync funciona correctamente, este caso nunca deberia pasar
-      return res.status(404).json({ error: "Usuario no encontrado en la base de datos local" });
+      return res
+        .status(404)
+        .json({ error: "Usuario no encontrado en la base de datos local" });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener el usuario" });
+  }
+};
+
+export const getById = async (req, res) => {
+  try {
+    const user = await Usuario.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: "El usuario no existe." });
     }
     res.status(200).json(user);
   } catch (error) {

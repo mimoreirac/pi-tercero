@@ -32,8 +32,7 @@ CREATE TABLE reservas (
 		estado IN ('pendiente', 'confirmada', 'rechazada', 'cancelada')
 	) DEFAULT 'pendiente',
 	created_at TIMESTAMP DEFAULT NOW(),
-	updated_at TIMESTAMP DEFAULT NOW(),
-	UNIQUE(id_viaje, id_pasajero)
+	updated_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE incidentes (
