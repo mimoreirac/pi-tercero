@@ -93,3 +93,17 @@ export const deleteViaje = async (req, res) => {
     res.status(500).json({ error: "Error al eliminar el viaje" });
   }
 };
+
+export const getMyViajes = async (req, res) => {
+  try {
+    const currentUser = await Usuario.findByFirebaseUid(req.user.uid);
+    if (!currentUser) {
+      return res.status(404).json({ error: "No existe el usuario" });
+    }
+
+    const myViajes = await Viaje.findByUser(currentUser.id_usuario);
+    res.status(200).json(myViajes);
+  } catch (error) {
+    res.status(500).json({ error: "Error al buscar viajes" });
+  }
+};

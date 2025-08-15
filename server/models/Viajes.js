@@ -28,10 +28,19 @@ class Viaje {
   }
 
   static async findById(id) {
-    const result = await pool.query("SELECT * FROM viajes WHERE id_viaje = $1", [
-      id,
-    ]);
+    const result = await pool.query(
+      "SELECT * FROM viajes WHERE id_viaje = $1",
+      [id]
+    );
     return result.rows[0];
+  }
+
+  static async findByUser(id_conductor) {
+    const result = await pool.query(
+      "SELECT * FROM viajes WHERE id_conductor = $1",
+      [id_conductor]
+    );
+    return result.rows;
   }
 
   static async findAllActive() {
@@ -41,7 +50,7 @@ class Viaje {
     return result.rows;
   }
 
-    static async update(id, updates) {
+  static async update(id, updates) {
     const allowedFields = [
       "origen",
       "destino",
@@ -66,7 +75,9 @@ class Viaje {
 
     const values = fieldsToUpdate.map((field) => updates[field]);
 
-    const query = `UPDATE viajes SET ${setClause}, updated_at = NOW() WHERE id_viaje = $${fieldsToUpdate.length + 1} RETURNING *`;
+    const query = `UPDATE viajes SET ${setClause}, updated_at = NOW() WHERE id_viaje = $${
+      fieldsToUpdate.length + 1
+    } RETURNING *`;
 
     const result = await pool.query(query, [...values, id]);
     return result.rows[0];
